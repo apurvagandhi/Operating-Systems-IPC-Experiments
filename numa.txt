@@ -1,0 +1,290 @@
+Apurva Gandhi
+CSCI346
+Operating Systems
+March 17, 2022
+
+Experiment 5
+
+**************************
+Hypothesis 1:
+****************************
+I am expecting that message-passing client/server programs with large messages would work badly when 
+using virtual concurrency. The reason behind this is that if they are on different hyper-threads or different CPUs, 
+the client can put data into the queue and the server can retrieve the data out of the queue. 
+If they are not using virtual concurrency, that means they are literally doing this concurrently. 
+Therefore, as soon as the client adds the message with the data to the queue, the server will retrieve the data. 
+If both CPUs have the same speed for inserting and removing the data, the queue will always be empty and 
+will result in a good performance. At the same time, using virtual concurrency will result in bad performance 
+because once the client inserts the data, the client will go to sleep and the server will retrieve the data. 
+The client will not be performing any “work” while the server is removing the data. Therefore, the amount of 
+time that the client and server are sleeping will be wasted and result in bad performance. 
+
+*****************************
+Hypothesis 2:
+***************************
+I am expecting that shared-memory round-trip measurements will be bad when using the distant/unrelated cored in 
+a NUMA design. Let’s assume that client is running on a core of CPU0 and the server is running on a core of CPU 4. 
+CPU 1 and CPU4 are distantly located. Furthermore, they both share the memory bank that is associated with CPU0. 
+When the server on CPU4 will need data from the shared memory, it will take a longer time to get the data from the 
+memory bank of CPU0 compared to the time it will take for the client running on the core of CPU0 to access data from 
+the memory bank of CPU0. Because they are sharing the same memory and the client-server has to wait until the 
+completion of the other party, the client will waste a lot of time waiting for the server to finish its work. 
+It will take more time for the server to check and change from memory to see if it can access the data or not 
+and during that time, the client running in CPU0 will be wasting its time. Therefore, I believe the client/server 
+pair would work especially badly when using the distant/unrelated cores in a NUMA design.
+
+Radius Information: 
+_______________________________
+ how many physical CPU sockets radius has: 2 physical CPU sockets
+ how many cores are in each of those CPUs: 20 cores 
+ how many hyperthreads are in each core: 2 threads per core
+ Total processor/CPUs: 2 physical CPU X 20 Cores X 2 Threads = 80 processors/CPUs
+ radius is a NUMA design.
+
+************************************
+Observation for Hypothesis 1:
+************************************
+
+Virtual Concurrency:
+______________________________________
+
+PID     TID COMMAND  USER     PSR CMD
+77967     - server_m ahgand22   - ./server_mpi 90
+    - 77967 -        ahgand22  35 -
+79379     - sleep    ahgand22   - sleep 180
+    - 79379 -        ahgand22  37 -
+79518     - client_m ahgand22   - ./client_mpi 90 test 10000000 
+    - 79518 -        ahgand22  35 -
+
+ Trial 1: -- Datasize = 100 bytes per report
+ Registered new event type: ID=1 name='BatteryError' description='UnexpectedShutDown'
+  ID            Name                     Description      Count        Sum
+   1    BatteryError              UnexpectedShutDown   10000000 1000000000
+Elapsed time: 19.635932 seconds
+number of report IPC messages received 10000000
+throughput is 509270.441122 report IPC messages per second
+throughput is 50.927044 MB/second
+
+Trial 2: -- Datasize = 100 bytes per report
+Registered new event type: ID=1 name='BatteryError' description='UnexpectedShutDown'
+  ID            Name                     Description      Count        Sum
+   1    BatteryError              UnexpectedShutDown   10000000 1000000000
+Elapsed time: 19.705328 seconds
+number of report IPC messages received 10000000
+throughput is 507476.973959 report IPC messages per second
+throughput is 50.747697 MB/second
+
+Trial 3: -- Datasize = 100 bytes per report
+Registered new event type: ID=1 name='BatteryError' description='UnexpectedShutDown'
+  ID            Name                     Description      Count        Sum
+   1    BatteryError              UnexpectedShutDown   10000000 1000000000
+Elapsed time: 19.895358 seconds
+number of report IPC messages received 10000000
+throughput is 502629.806318 report IPC messages per second
+throughput is 50.262981 MB/second
+
+Trial 4 -- Datasize = 1 bytes per report 
+Registered new event type: ID=1 name='BatteryError' description='UnexpectedShutDown'
+  ID            Name                     Description      Count        Sum
+   1    BatteryError              UnexpectedShutDown   10000000   10000000
+Elapsed time: 16.910432 seconds
+number of report IPC messages received 10000000
+throughput is 591350.957779 report IPC messages per second
+throughput is 0.591351 MB/second
+
+Actual Concurrency:
+______________________________________
+
+PID     TID COMMAND  USER     PSR CMD
+4607     - server_m ahgand22   - ./server_mpi 90
+    -  4607 -        ahgand22  35 -
+ 4682     - client_m ahgand22   - ./client_mpi 90 test
+    -  4682 -        ahgand22  68 -
+
+Trial 1: -- Datasize = 100 bytes per report
+Registered new event type: ID=1 name='BatteryError' description='UnexpectedShutDown'
+  ID            Name                     Description      Count        Sum
+   1    BatteryError              UnexpectedShutDown   10000000 1000000000
+Elapsed time: 15.982540 seconds
+number of report IPC messages received 10000000
+throughput is 625682.767952 report IPC messages per second
+throughput is 62.568277 MB/second
+
+Trial 2:  -- Datasize = 100 bytes per report
+Registered new event type: ID=1 name='BatteryError' description='UnexpectedShutDown'
+  ID            Name                     Description      Count        Sum
+   1    BatteryError              UnexpectedShutDown   10000000 1000000000
+Elapsed time: 13.494425 seconds
+number of report IPC messages received 10000000
+throughput is 741046.785817 report IPC messages per second
+throughput is 74.104679 MB/second
+
+Trial 3:  -- Datasize = 100 bytes per report
+Registered new event type: ID=1 name='BatteryError' description='UnexpectedShutDown'
+  ID            Name                     Description      Count        Sum
+   1    BatteryError              UnexpectedShutDown   10000000 1000000000
+Elapsed time: 15.108937 seconds
+number of report IPC messages received 10000000
+throughput is 661859.931506 report IPC messages per second
+throughput is 66.185993 MB/second
+
+Trial 4:  -- Datasize = 1 bytes per report
+Registered new event type: ID=1 name='BatteryError' description='UnexpectedShutDown'
+  ID            Name                     Description      Count        Sum
+   1    BatteryError              UnexpectedShutDown   10000000   10000000
+Elapsed time: 10.458274 seconds
+number of report IPC messages received 10000000
+throughput is 956180.738688 report IPC messages per second
+throughput is 0.956181 MB/second
+
+Explanation:
+_______________________________________
+The data collected aligns with my hypothesis that message-passing client/server programs with 
+large messages would work badly when using virtual concurrency. As per statistics collected from
+In the first 3 trials in the virtual concurrency, the throughput is about 50 MB/sec and half a million messages/second.
+As per statistics collected from the first 3 trials in the actual concurrency, the average throughput is around
+67 MB/sec and about 676195 messages/sec. As explained in the hypothesis, when running concurrently, throughput is 
+higher because as soon as CPU 35 puts the message in the queue, CPU 68 retrieves it. There is no waiting or waste of 
+A performance. On contrary, when using virtual concurrency, the client running on CPU35 adds the message to the queue,
+goes to sleep while the server running on CPU35 wakes up retrieves the message, and goes back to sleep. Because they
+are not simultaneously working to add and retrieve messages, the virtual concurrency has slower throughput.
+Furthermore, trial 4 has interesting data in that I used a smaller size of data. I used 1-byte per report to see
+how it would change. The throughput for data became 50 times slower than the first 3 trials where I used a size of 100 bytes
+per report. At the same time, throughput for messages became twice faster. This is because each message now takes less time to send
+as data is 99 bytes less than the first 3 trials so it can send more messages per second. 
+
+
+****************************************
+Observation for Hypothesis 2:
+*****************************************
+
+Virtual Concurrency (same CPUs):
+_______________________________________
+
+PID     TID COMMAND  USER     PSR CMD
+12410     - server_s ahgand22   - ./server_shmem /ahg
+    - 12410 -        ahgand22  20 -
+12475     - client_s ahgand22   - ./client_shmem /ahg
+    - 12475 -        ahgand22  20 -
+
+Trial 1: -- count of 1000000
+Elapsed time: 61.243730 seconds
+Elapsed time: 61243.729928 milliseconds
+Elapsed time: 61243729.928000 microseconds
+Elapsed time: 61243729928.000000 nanoseconds
+Total number of round trips completed are 1000000.
+Throughput is 16328.202106 round-trips/second
+Average round trip time is 0.000061 seconds.
+
+Trial 2: -- count of 1000000
+Elapsed time: 61.098002 seconds
+Elapsed time: 61098.001647 milliseconds
+Elapsed time: 61098001.647000 microseconds
+Elapsed time: 61098001647.000000 nanoseconds
+Total number of round trips completed are 1000000.
+Throughput is 16367.147420 round-trips/second
+Average round trip time is 0.000061 seconds.
+
+Trial 3: -- count of 1000000
+Elapsed time: 67.170769 seconds
+Elapsed time: 67170.769041 milliseconds
+Elapsed time: 67170769.041000 microseconds
+Elapsed time: 67170769041.000000 nanoseconds
+Total number of round trips completed are 1000000.
+Throughput is 14887.428182 round-trips/second
+Average round trip time is 0.000067 seconds
+
+Actual Concurrency with closely distance CPUs (CPU 1 and CPU 2):
+_______________________________________
+
+PID     TID COMMAND  USER     PSR CMD
+18056     - server_s ahgand22   - ./server_shmem /ahgand-shared-region
+    - 18056 -        ahgand22   1 -
+18596     - client_s ahgand22   - ./client_shmem /ahgand-shared-region experiment 100000
+    - 18596 -        ahgand22   2 -
+
+
+Trial 1: -- count of 1000000
+Elapsed time: 73.921423 seconds
+Elapsed time: 73921.422686 milliseconds
+Elapsed time: 73921422.686000 microseconds
+Elapsed time: 73921422686.000000 nanoseconds
+Total number of round trips completed are 1000000.
+Throughput is 13527.878167 round-trips/second
+Average round trip time is 0.000074 seconds.
+
+Trial 2: -- count of 1000000
+Elapsed time: 67.048306 seconds
+Elapsed time: 67048.306254 milliseconds
+Elapsed time: 67048306.254000 microseconds
+Elapsed time: 67048306254.000000 nanoseconds
+Total number of round trips completed are 1000000.
+Throughput is 14914.619859 round-trips/second
+Average round trip time is 0.000067 seconds.
+
+Trial 3: -- count of 1000000
+Elapsed time: 68.279172 seconds
+Elapsed time: 68279.171637 milliseconds
+Elapsed time: 68279171.637000 microseconds
+Elapsed time: 68279171637.000008 nanoseconds
+Total number of round trips completed are 1000000.
+Throughput is 14645.754716 round-trips/second
+Average round trip time is 0.000068 seconds.
+
+Actual Concurrency with very distance CPUs (CPU1 and CPU78):
+__________________________________
+
+PID     TID COMMAND  USER     PSR CMD
+24342     - server_s ahgand22   - ./server_shmem /ahgand-share
+    - 24342 -        ahgand22   1 -
+24406     - client_s ahgand22   - ./client_shmem /ahgand-share
+    - 24406 -        ahgand22  78 -
+
+Trial 1: -- count of 1000000
+Elapsed time: 71.040142 seconds
+Elapsed time: 71040.142372 milliseconds
+Elapsed time: 71040142.372000 microseconds
+Elapsed time: 71040142372.000000 nanoseconds
+Total number of round trips completed are 1000000.
+Throughput is 14076.548366 round-trips/second
+Average round trip time is 0.000071 seconds.
+
+Trial 2: -- count of 1000000
+Elapsed time: 66.572398 seconds
+Elapsed time: 66572.398069 milliseconds
+Elapsed time: 66572398.069000 microseconds
+Elapsed time: 66572398069.000000 nanoseconds
+Total number of round trips completed are 1000000.
+Throughput is 15021.240469 round-trips/second
+Average round trip time is 0.000067 seconds.
+
+Trial 3: -- count of 1000000
+Elapsed time: 68.541971 seconds
+Elapsed time: 68541.970585 milliseconds
+Elapsed time: 68541970.585000 microseconds
+Elapsed time: 68541970585.000000 nanoseconds
+Total number of round trips completed are 1000000.
+Throughput is 14589.600962 round-trips/second
+Average round trip time is 0.000069 seconds.
+
+Explanation:
+______________________________________
+
+The data collected above mostly agrees with my hypothesis that shared-memory round-trip 
+measurements will be bad when using the distant/unrelated cored in a NUMA design. 
+The average throughput when using virtual concurrency for shared memory is about 15860 round-trips/second. 
+When using actual concurrency, but CPUs relatively close to each other, the average throughput is 
+14362 round-trips/second. Finally, when using the actual concurrency on distant CPUs, the average throughput
+is 14562 MB/sec. The data agrees with the hypothesis that shared memory is bad for distant cored design. The
+data of closely distant and far distant does not match my expectation because the throughput for far distant
+trials should be greater than the close distant because it will require more time to travel. However, at the same
+time, the difference is not very large and it is almost negligible so no real evidence to make any confirmed judgment. 
+Virtual concurrency is faster because they are both on the same CPU/processor so the memory access is close for both
+server and client. One of the possibilities for the ambiguous result between closely distant and far distant 
+CPU is that they might not be very  far apart physically. If the actual physical distance is closer then the difference will be 
+almost negligible. While I made an educated guess by picking processor 1 and processor 78 assuming that processor 1 will be on a different 
+physical CPU socket than processor 78. If they are both parts of the same physical CPU socket, it might cause almost 
+the same throughput and not as expected. So, distant processors do have bad performance because accessing shared memory will be longer for 
+either server or client. In contrast, virtual concurrency will be quicker as it does not have to worry about distance. 
+The result for the actual concurrency of the close vs far processor is ambiguous in these trials, possibility due to reasons explained above.  
+
